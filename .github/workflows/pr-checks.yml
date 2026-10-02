@@ -1,0 +1,79 @@
+name: PR checks
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+      - "src/**"
+      - "tests/**"
+      - "state-machine/**"
+      - "requirements-dev.txt"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true   # a newer push makes the older run pointless
+
+jobs:
+  terraform:
+    name: Terraform fmt / validate / lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+      - name: Init without a backend (no AWS credentials needed)
+        run: terraform init -backend=false -input=false
+
+      - name: Validate syntax and references
+        run: terraform validate
+
+      - name: Validate state machine JSON syntax
+        working-directory: .
+        run: python3 -m json.tool state-machine/pipeline.asl.json > /dev/null
+
+      - uses: terraform-linters/setup-tflint@v4
+
+      - name: Lint
+        run: tflint
+
+  python:
+    name: Python lint and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"   # matches the Lambda runtime
+          cache: pip
+
+      - run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check src tests
+
+      - name: Unit tests
+        run: pytest -v
+
+  security:
+    name: Security scan (Checkov)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform
+          framework: terraform
+          soft_fail: true   # DEMO: report findings without blocking. Production: remove this.

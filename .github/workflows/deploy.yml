@@ -1,0 +1,48 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - "src/**"
+      - "state-machine/**"
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # lets the job request an OIDC token from GitHub
+  contents: read
+
+concurrency:
+  group: deploy-event-driven-pipeline
+  cancel-in-progress: false   # never cancel a deploy halfway: it can corrupt state
+
+env:
+  AWS_REGION: us-east-1   # where resources deploy (the state bucket's region is set in main.tf)
+  # Terraform reads any env var named TF_VAR_<name> as the variable <name>
+  TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+  TF_VAR_pandas_layer_arn: ${{ vars.PANDAS_LAYER_ARN }}
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - run: terraform init -input=false
+
+      - name: Plan
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Apply exactly the saved plan
+        run: terraform apply -input=false tfplan

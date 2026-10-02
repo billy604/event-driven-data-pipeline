@@ -1,0 +1,5 @@
+order_id,customer_id,product,quantity,unit_price,order_date
+1001,C-17,Keyboard,2,25.50,2026-09-27
+1002,C-22,Monitor,1,189.99,2026-09-27
+1003,C-17,USB Cable,5,4.25,2026-09-28
+1004,C-31,Webcam,1,59.00,2026-09-28
