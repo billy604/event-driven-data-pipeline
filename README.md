@@ -1,6 +1,6 @@
 # Event-Driven Data Processing Pipeline (AWS)
 
-![PR checks](https://github.com/<your-username>/<your-repo>/actions/workflows/pr-checks.yml/badge.svg)
+![PR checks](https://github.com/billy604/event-driven-data-pipeline/actions/workflows/pr-checks.yml/badge.svg)
 
 A serverless pipeline that ingests CSV files from S3, deduplicates them, validates and
 transforms them to partitioned Parquet, and exposes the result to SQL through Athena.

@@ -3,6 +3,7 @@ data "archive_file" "starter" {
   type        = "zip"
   source_dir  = "${path.module}/../src/starter"
   output_path = "${path.module}/build/starter.zip"
+  excludes    = ["__pycache__"]
 }
 
 resource "aws_lambda_function" "starter" {
@@ -46,6 +47,7 @@ data "archive_file" "validator" {
   type        = "zip"
   source_dir  = "${path.module}/../src/validator"
   output_path = "${path.module}/build/validator.zip"
+  excludes    = ["__pycache__"]
 }
 
 resource "aws_lambda_function" "validator" {
@@ -72,6 +74,7 @@ data "archive_file" "transformer" {
   type        = "zip"
   source_dir  = "${path.module}/../src/transformer"
   output_path = "${path.module}/build/transformer.zip"
+  excludes    = ["__pycache__"]
 }
 
 resource "aws_lambda_function" "transformer" {
