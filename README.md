@@ -97,13 +97,43 @@ Fix: a compensating action that releases the claim when the start fails, plus a 
 execution name as a second guard. A regression test covers it
 (`test_failed_start_releases_claim_so_retry_works`).
 
+## Screenshots from a live run
+
+Captured from a real deployment in my AWS account.
+
+### Happy path
+Dropping `good_orders.csv` into `incoming/` starts one Step Functions execution and writes date-partitioned Parquet to `processed/`. The result is queryable in Athena right away.
+
+![Happy path: upload, Parquet output, SUCCEEDED execution, Athena result](docs/screenshots/01-happy-path.png)
+
+### Duplicate delivery is skipped
+The same file arriving twice is caught by a DynamoDB claims table, so no second execution starts.
+
+![Duplicate file skipped in the starter Lambda log](docs/screenshots/02-idempotency.png)
+
+### Bad files are quarantined and reported
+A file with a missing column, or an empty file, is moved to `rejected/` and an SNS email says why.
+
+![SNS "File rejected" emails](docs/screenshots/03-rejected-file.png)
+
+### Failed messages trip an alarm
+A message that can't be processed lands in the dead-letter queue. That trips the `event-driven-pipeline-dlq-not-empty` CloudWatch alarm, which emails me.
+
+![CloudWatch DLQ alarm email](docs/screenshots/04-dlq-alarm.png)
+
+### Tests
+12 tests cover the starter and validator Lambdas: dedup, partial batch failures, bad rows, and empty files.
+
+![pytest: 12 passed](docs/screenshots/05-tests.png)
+
+
 ## Test scenarios
 
 | # | Scenario | Evidence |
 |---|---|---|
-| 1 | Happy path | ![](docs/screenshots/01-happy-path-execution.png) |
-| 2 | Bad schema is quarantined | ![](docs/screenshots/02-rejected-file.png) |
-| 3 | Duplicate is skipped | ![](docs/screenshots/03-duplicate-skipped.png) |
+| 1 | Happy path | ![](docs/screenshots/01-happy-path.png) |
+| 2 | Bad schema is quarantined | ![](docs/screenshots/03-rejected-file.png) |
+| 3 | Duplicate is skipped | ![](docs/screenshots/02-idempotency.png) |
 | 4 | Poison message → DLQ → alarm | ![](docs/screenshots/04-dlq-alarm.png) |
 | 5 | Burst of 200 files | ![](docs/screenshots/05-burst-queue-depth.png) |
 
